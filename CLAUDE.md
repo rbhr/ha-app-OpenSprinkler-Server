@@ -60,6 +60,21 @@ add-on version no longer identifies what a user is running.
 - **The base image must be a public GHCR package.** `GITHUB_TOKEN` is scoped to
   this repository and cannot pull a private package from
   `rbhr/OpenSprinkler-Firmware`.
+- **Ingress needs no proxy, and adding one would be a regression.** The UI
+  derives its API base from `document.URL` — `home.js` does
+  `document.URL.match( /(https?:\/\/.*)\/.*?/ )[ 1 ] + "/sp?pw=..."`, and the
+  greedy `.*` takes everything up to the *last* slash — so behind ingress it
+  produces `.../api/hassio_ingress/<token>/sp`, which Supervisor forwards to
+  `/sp`. Verified end to end against a local stand-in for
+  `supervisor/api/ingress.py`: the whole UI works and no request reached the
+  add-on with a doubled slash.
+
+  The `//` problem recorded in `ha-app-C-Gate-Server/CLAUDE.md` does **not**
+  generalise. Supervisor's route is `/ingress/{token}/{path:.*}` and its target
+  is `f"http://{ip}:{port}/{path}"`, so a doubled slash only ever arrives
+  because the *page* asked for one. C-Gate's did; OpenSprinkler's does not.
+  Worth knowing, because `//` is a hard 404 here — the firmware routes `"/"`
+  and `"/index.html"` explicitly and normalises nothing.
 - **Add-on options must not shadow UI settings.** The firmware persists its own
   configuration in its data directory and exposes it in the web UI. Only things
   that must be decided before the binary starts belong in `config.yaml`.
@@ -118,7 +133,4 @@ surface and the tag scheme. Then here: bump the tags in `build.yaml`, bump
 
 - `icon.png` and `logo.png` are missing; Home Assistant falls back to a generic
   icon until they are added.
-- Ingress is not enabled. It looks viable — the UI derives its API base from
-  `document.URL` rather than using root-absolute paths — but it is unverified.
-  See the plan notes; port 88 must keep working regardless, because other
-  applications on the network use the HTTP API.
+- Nothing outstanding on ingress; see below.
