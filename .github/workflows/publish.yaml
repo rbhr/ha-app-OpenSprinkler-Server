@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  ARCHITECTURES: '["amd64", "aarch64", "armv7"]'
+  ARCHITECTURES: '["amd64", "aarch64"]'
   IMAGE_NAME: opensprinkler
 
 jobs:

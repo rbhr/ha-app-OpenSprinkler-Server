@@ -28,7 +28,7 @@ that adds Docker packaging — and adds only the Home Assistant contract on top:
 the manifest, the add-on labels, and an entrypoint that reads `options.json`.
 
 That keeps the two repositories from drifting apart, and makes pulling in an
-upstream firmware release a three-line change here:
+upstream firmware release a one-line-per-architecture change here:
 
 ```
 upstream ──► merge into the fork ──► tag a release ──► fork CI publishes the image
