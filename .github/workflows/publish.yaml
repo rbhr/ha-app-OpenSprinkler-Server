@@ -43,7 +43,7 @@ jobs:
             /^build_from:/ { inblock = 1; next }
             inblock && /^[^[:space:]]/ { inblock = 0 }
             inblock && /^[[:space:]]+[A-Za-z0-9_]+:[[:space:]]*[^[:space:]]/ { print $2 }
-          ' opensprinkler/build.yaml | tr -d "\"'")
+          ' opensprinkler/build.yaml | tr -d "\"'")"
 
           if [ -z "${images}" ]; then
             echo "::error::Could not read build_from from opensprinkler/build.yaml"
