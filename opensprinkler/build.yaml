@@ -1,0 +1,18 @@
+# The firmware image this add-on wraps.
+#
+# This is the ONLY place the firmware version is pinned. Bumping these three
+# lines (they are deliberately identical -- the tag names a multi-arch manifest
+# and the builder's per-arch --platform picks the right one) is the whole of
+# "pull in a new firmware build".
+#
+# The tag must exist as a GitHub release on rbhr/OpenSprinkler-Firmware. That
+# fork publishes :master on every push, but :release, :latest and semver tags
+# fire only on a published release -- see its CLAUDE.md, "Releasing".
+#
+# armhf and i386 are absent because the fork's build-ci.yml publishes only
+# linux/amd64, linux/arm64 and linux/arm/v7.
+
+build_from:
+  amd64: ghcr.io/rbhr/opensprinkler-firmware:v2.2.1.5-ospi.1
+  aarch64: ghcr.io/rbhr/opensprinkler-firmware:v2.2.1.5-ospi.1
+  armv7: ghcr.io/rbhr/opensprinkler-firmware:v2.2.1.5-ospi.1

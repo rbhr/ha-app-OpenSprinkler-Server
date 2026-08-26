@@ -1,0 +1,45 @@
+name: OpenSprinkler
+version: "1.0.0"
+slug: opensprinkler
+description: OpenSprinkler Pi irrigation controller, with or without sprinkler hardware
+url: https://github.com/rbhr/ha-app-OpenSprinkler-Server
+arch:
+  - amd64
+  - aarch64
+  - armv7
+startup: application
+boot: auto
+init: false
+image: ghcr.io/rbhr/{arch}-opensprinkler
+
+# Port 88 is published directly, not only through ingress: other applications
+# on the network talk to the controller's HTTP API, and they cannot go through
+# an ingress token. Keep the container side at 88 -- the firmware persists its
+# HTTP port in iopts.dat and that value wins over anything set here, so the two
+# becoming unreachable is a real failure mode if they drift.
+ports:
+  88/tcp: 88
+ports_description:
+  88/tcp: OpenSprinkler web UI and HTTP API
+webui: "http://[HOST]:[PORT:88]/"
+
+# Hardware is optional: these are the two device classes the OSPI build opens,
+# and run.sh reports at startup which of them actually turned up.
+#   /dev/gpiochip*  lgpio claims station and sensor pins   (gpio.cpp)
+#   /dev/i2c-*      zone/sensor expanders, RTC, ADS1115    (i2cd.h)
+# gpiochip4 is the Pi 5 (bcm2712) primary; gpiochip0 is every earlier Pi.
+# i2c-1 is any board the firmware recognises as a Pi, i2c-0 the fallback.
+devices:
+  - /dev/gpiochip0
+  - /dev/gpiochip4
+  - /dev/i2c-1
+  - /dev/i2c-0
+
+map:
+  - type: data
+    read_only: false
+
+options:
+  require_hardware: false
+schema:
+  require_hardware: bool

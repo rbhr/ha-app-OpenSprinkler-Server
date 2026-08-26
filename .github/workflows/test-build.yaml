@@ -1,0 +1,159 @@
+# Named test-build, not build, so it is not confused with opensprinkler/build.yaml
+# -- which is the Home Assistant builder's config, not a workflow.
+name: Test Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  ARCHITECTURES: '["amd64", "aarch64", "armv7"]'
+  IMAGE_NAME: opensprinkler
+
+jobs:
+  lint:
+    name: Lint entrypoint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Shellcheck
+        run: shellcheck --shell=sh opensprinkler/run.sh
+
+  init:
+    name: Prepare build matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Resolve add-on version
+        id: version
+        run: |
+          version="$(awk '/^version:/{print $2; exit}' opensprinkler/config.yaml | tr -d "\"'")"
+          if [ -z "${version}" ]; then
+            echo "::error::Could not read version from opensprinkler/config.yaml"
+            exit 1
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "Add-on version: ${version}"
+
+      - name: Prepare matrix
+        id: matrix
+        uses: home-assistant/builder/actions/prepare-multi-arch-matrix@2026.06.0
+        with:
+          architectures: ${{ env.ARCHITECTURES }}
+          image-name: ${{ env.IMAGE_NAME }}
+
+  build:
+    name: Test build ${{ matrix.arch }}
+    needs: init
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      # The base image named in opensprinkler/build.yaml lives in another
+      # repository's GHCR namespace. This is enough only while that package is
+      # public -- GITHUB_TOKEN is scoped to this repo and cannot read a private
+      # package in rbhr/OpenSprinkler-Firmware.
+      packages: read
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.init.outputs.matrix) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Build ${{ matrix.arch }}
+        uses: home-assistant/builder/actions/build-image@2026.06.0
+        with:
+          arch: ${{ matrix.arch }}
+          context: ./opensprinkler
+          image: ${{ matrix.image }}
+          image-tags: ${{ needs.init.outputs.version }}
+          version: ${{ needs.init.outputs.version }}
+          push: false
+          load: true
+          cosign: false
+          container-registry-password: ${{ secrets.GITHUB_TOKEN }}
+          labels: |
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Verify add-on labels
+        env:
+          IMAGE: ${{ matrix.image }}:${{ needs.init.outputs.version }}
+          EXPECTED_VERSION: ${{ needs.init.outputs.version }}
+          EXPECTED_ARCH: ${{ matrix.arch }}
+          EXPECTED_REVISION: ${{ github.sha }}
+        run: |
+          echo "Inspecting ${IMAGE}"
+          labels="$(docker inspect --format '{{json .Config.Labels}}' "${IMAGE}")"
+          echo "${labels}" | jq .
+
+          fail=0
+          check() {
+            actual="$(echo "${labels}" | jq -r --arg k "$1" '.[$k] // ""')"
+            if [ -z "${actual}" ]; then
+              echo "::error::Label $1 is empty"
+              fail=1
+            elif [ -n "$2" ] && [ "${actual}" != "$2" ]; then
+              echo "::error::Label $1 is '${actual}', expected '$2'"
+              fail=1
+            else
+              echo "ok: $1 = ${actual}"
+            fi
+          }
+
+          check io.hass.version "${EXPECTED_VERSION}"
+          check io.hass.arch "${EXPECTED_ARCH}"
+          check io.hass.type "addon"
+          check io.hass.name ""
+          check io.hass.description ""
+          check org.opencontainers.image.version "${EXPECTED_VERSION}"
+          check org.opencontainers.image.source ""
+          check org.opencontainers.image.created ""
+          check org.opencontainers.image.revision "${EXPECTED_REVISION}"
+
+          exit "${fail}"
+
+      - name: Verify the entrypoint runs without hardware
+        env:
+          IMAGE: ${{ matrix.image }}:${{ needs.init.outputs.version }}
+        run: |
+          # amd64 only: the arm images need QEMU to execute and this is a
+          # smoke test of run.sh, not of the firmware.
+          if [ "${{ matrix.arch }}" != "amd64" ]; then
+            echo "skipped on ${{ matrix.arch }}"
+            exit 0
+          fi
+
+          data="$(mktemp -d)"
+          echo '{"require_hardware": false}' > "${data}/options.json"
+
+          docker run -d --name os-smoke -v "${data}":/data -p 18888:88 "${IMAGE}"
+          for _ in $(seq 1 30); do
+            if curl -fsS -o /dev/null http://127.0.0.1:18888/; then ok=1; break; fi
+            sleep 1
+          done
+
+          docker logs os-smoke
+
+          if [ -z "${ok:-}" ]; then
+            echo "::error::The controller never answered on port 88"
+            exit 1
+          fi
+
+          # The whole point of the /data/opensprinkler split: firmware state
+          # must not land beside Supervisor's options.json.
+          test -d "${data}/opensprinkler" || { echo "::error::data subdirectory not created"; exit 1; }
+          test ! -f "${data}/iopts.dat"   || { echo "::error::firmware wrote into /data directly"; exit 1; }
+          echo "ok: firmware state is confined to /data/opensprinkler"
+          ls -la "${data}" "${data}/opensprinkler"
+
+          docker rm -f os-smoke
