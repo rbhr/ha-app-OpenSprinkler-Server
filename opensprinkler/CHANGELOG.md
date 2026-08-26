@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.0
+
+- Adds an **ingress panel**, so OpenSprinkler appears in the Home Assistant
+  sidebar. No reverse proxy is involved: the UI derives its API base from
+  `document.URL`, so it works unchanged behind ingress' path prefix.
+- Port 88 is still published directly and is unaffected. Applications on the
+  network that use the HTTP API keep working exactly as before — they cannot
+  go through an ingress token, which is why both routes exist.
+
 ## 1.0.0
 
 First release.

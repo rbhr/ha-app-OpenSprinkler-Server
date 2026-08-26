@@ -48,9 +48,15 @@ does not want `/dev/mem` or `CAP_SYS_RAWIO`.
 
 ## Network access
 
-Port 88 is published directly as well as being available through Home
-Assistant, because other applications on the network talk to the controller's
-HTTP API and cannot go through an ingress token.
+There are two ways in, and both are deliberate.
+
+**The sidebar panel** (ingress) is the everyday one. It needs no port, no
+address, and no separate authentication.
+
+**Port 88 published directly** is for everything else: other applications on
+the network that use the controller's HTTP API cannot go through an ingress
+token. This is also the address to give the Home Assistant OpenSprinkler
+integration.
 
 **Do not change the HTTP port in the OpenSprinkler UI.** That value persists in
 `iopts.dat` and wins over the add-on's port mapping, so changing it makes the

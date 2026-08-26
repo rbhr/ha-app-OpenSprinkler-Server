@@ -14,8 +14,10 @@ Add this repository in Home Assistant — **Settings → Add-ons → Add-on Stor
 https://github.com/rbhr/ha-app-OpenSprinkler-Server
 ```
 
-Then install **OpenSprinkler** from the store. See
-[the add-on documentation](opensprinkler/DOCS.md) for configuration.
+Then install **OpenSprinkler** from the store. It appears in the sidebar, and
+also publishes port 88 directly for applications on the network that use the
+HTTP API. See [the add-on documentation](opensprinkler/DOCS.md) for
+configuration.
 
 ## How this relates to the firmware
 

@@ -1,5 +1,5 @@
 name: OpenSprinkler
-version: "1.0.0"
+version: "1.1.0"
 slug: opensprinkler
 description: OpenSprinkler Pi irrigation controller, with or without sprinkler hardware
 url: https://github.com/rbhr/ha-app-OpenSprinkler-Server
@@ -11,11 +11,26 @@ boot: auto
 init: false
 image: ghcr.io/rbhr/{arch}-opensprinkler
 
-# Port 88 is published directly, not only through ingress: other applications
-# on the network talk to the controller's HTTP API, and they cannot go through
-# an ingress token. Keep the container side at 88 -- the firmware persists its
-# HTTP port in iopts.dat and that value wins over anything set here, so the two
-# becoming unreachable is a real failure mode if they drift.
+# Ingress gives the sidebar panel. It works because the OpenSprinkler UI
+# derives its API base from document.URL rather than using root-absolute
+# paths -- home.js does
+#   document.URL.match( /(https?:\/\/.*)\/.*?/ )[ 1 ] + "/sp?pw=..."
+# and the greedy .* takes everything up to the LAST slash, so under ingress it
+# produces .../api/hassio_ingress/<token>/sp, which Supervisor forwards to /sp.
+# Verified end to end against a local stand-in for supervisor/api/ingress.py:
+# the whole UI works and not one request reached the add-on with a doubled
+# slash. Do not "simplify" this to a path-rewriting proxy; none is needed.
+ingress: true
+ingress_port: 88
+ingress_entry: /
+panel_icon: mdi:sprinkler
+panel_title: OpenSprinkler
+
+# Port 88 is ALSO published directly, and that is not redundant: other
+# applications on the network talk to the controller's HTTP API and cannot go
+# through an ingress token. Keep the container side at 88 -- the firmware
+# persists its HTTP port in iopts.dat and that value wins over anything set
+# here, so the two becoming unreachable is a real failure mode if they drift.
 ports:
   88/tcp: 88
 ports_description:
