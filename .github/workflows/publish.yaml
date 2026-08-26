@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  ARCHITECTURES: '["amd64", "aarch64", "armv7"]'
+  ARCHITECTURES: '["amd64", "aarch64"]'
   IMAGE_NAME: opensprinkler
 
 jobs:
@@ -16,6 +16,7 @@ jobs:
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
       version: ${{ steps.version.outputs.version }}
+      firmware: ${{ steps.firmware.outputs.image }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -30,6 +31,37 @@ jobs:
           fi
           echo "version=${version}" >> "$GITHUB_OUTPUT"
           echo "Add-on version: ${version}"
+
+      - name: Resolve firmware base image
+        id: firmware
+        run: |
+          # opensprinkler/build.yaml stays the single place the firmware version
+          # is pinned, but the split builder actions do not read it -- only
+          # Supervisor does, when a user builds the add-on locally from source.
+          # So read it here and hand it to build-image as a build arg.
+          images="$(awk '
+            /^build_from:/ { inblock = 1; next }
+            inblock && /^[^[:space:]]/ { inblock = 0 }
+            inblock && /^[[:space:]]+[A-Za-z0-9_]+:[[:space:]]*[^[:space:]]/ { print $2 }
+          ' opensprinkler/build.yaml | tr -d "\"'")"
+
+          if [ -z "${images}" ]; then
+            echo "::error::Could not read build_from from opensprinkler/build.yaml"
+            exit 1
+          fi
+
+          # One BUILD_FROM is passed for every architecture, so they must agree.
+          # The tag names a multi-arch manifest; the per-arch --platform picks
+          # the right leg. Divergent entries would silently build the wrong one.
+          if [ "$(echo "${images}" | sort -u | wc -l)" -ne 1 ]; then
+            echo "::error::build_from entries differ; all architectures must name the same tag"
+            echo "${images}"
+            exit 1
+          fi
+
+          image="$(echo "${images}" | head -n1)"
+          echo "image=${image}" >> "$GITHUB_OUTPUT"
+          echo "Firmware base image: ${image}"
 
       - name: Prepare matrix
         id: matrix
@@ -63,6 +95,8 @@ jobs:
             ${{ needs.init.outputs.version }}
             latest
           version: ${{ needs.init.outputs.version }}
+          build-args: |
+            BUILD_FROM=${{ needs.init.outputs.firmware }}
           push: true
           container-registry-password: ${{ secrets.GITHUB_TOKEN }}
           # build-image does not set revision; without this, published images

@@ -24,9 +24,19 @@ add-on version no longer identifies what a user is running.
 - `opensprinkler/config.yaml` — add-on manifest. **`version:` is the published
   image tag**, so it must be bumped for every release.
 - `opensprinkler/build.yaml` — the Home Assistant builder's config, *not* a
-  workflow. The only place the firmware version is pinned. All three
-  architectures name the same tag; the tag is a multi-arch manifest and the
-  builder's per-arch `--platform` resolves the right one.
+  workflow. The only place the firmware version is pinned. Both architectures
+  name the same tag; the tag is a multi-arch manifest and the per-arch
+  `--platform` resolves the right leg. **amd64 and aarch64 only** —
+  `prepare-multi-arch-matrix` builds on native runners and has none for armv7,
+  so it rejects that value outright.
+
+  **The split builder actions do not read this file.** Only the old monolithic
+  builder did, and Supervisor still does when a user builds the add-on locally
+  from source. So the workflows parse the tag out of it in their `init` job and
+  pass it to `build-image` as a `BUILD_FROM` build arg — leaving it out is a
+  blank `FROM` and `base name (${BUILD_FROM}) should not be blank`. The init
+  step also fails the run if the `build_from` entries disagree, since one
+  `BUILD_FROM` is used for every architecture.
 - `opensprinkler/run.sh` — the entrypoint. Reads `options.json`, creates the
   data directory, probes for hardware, then `exec`s the firmware as PID 1.
 - `.github/workflows/test-build.yaml` — named that way so it is not mistaken
@@ -79,8 +89,8 @@ Check the startup banner reports the hardware it found, that the UI answers on
 Branch, PR, merge — `main` is not committed to directly. Then:
 
 1. Bump `version:` in `opensprinkler/config.yaml` and add a `CHANGELOG.md`
-   entry (both under `opensprinkler/`). If the firmware changed, bump the three
-   lines in `build.yaml` too and say which build in the changelog.
+   entry (both under `opensprinkler/`). If the firmware changed, bump the tags
+   in `build.yaml` too and say which build in the changelog.
 2. `git tag vX.Y.Z && git push origin vX.Y.Z`, then `gh release create vX.Y.Z`.
    Publishing the release triggers `.github/workflows/publish.yaml`.
 3. Verify the images landed — the GitHub Packages UI lags badly:
@@ -101,8 +111,8 @@ curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $token" \
 
 In `rbhr/OpenSprinkler-Firmware`: `git fetch upstream && git merge
 upstream/master`, then tag and release it — its `CLAUDE.md` has the conflict
-surface and the tag scheme. Then here: bump the three lines in `build.yaml`,
-bump `version:` in `config.yaml`, changelog, release.
+surface and the tag scheme. Then here: bump the tags in `build.yaml`, bump
+`version:` in `config.yaml`, changelog, release.
 
 ## Not yet done
 

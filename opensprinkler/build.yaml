@@ -1,18 +1,27 @@
 # The firmware image this add-on wraps.
 #
-# This is the ONLY place the firmware version is pinned. Bumping these three
-# lines (they are deliberately identical -- the tag names a multi-arch manifest
-# and the builder's per-arch --platform picks the right one) is the whole of
+# This is the ONLY place the firmware version is pinned. Bumping these entries
+# (they are deliberately identical -- the tag names a multi-arch manifest and
+# the builder's per-arch --platform picks the right one) is the whole of
 # "pull in a new firmware build".
+#
+# Two different things read this file, and only one of them reads it by itself.
+# Supervisor uses build_from directly when a user builds the add-on locally
+# from source. The split builder actions do NOT -- that was the old monolithic
+# builder -- so the workflows parse the tag out of here and hand it to
+# build-image as a BUILD_FROM build arg, and fail if the entries disagree.
 #
 # The tag must exist as a GitHub release on rbhr/OpenSprinkler-Firmware. That
 # fork publishes :master on every push, but :release, :latest and semver tags
 # fire only on a published release -- see its CLAUDE.md, "Releasing".
 #
-# armhf and i386 are absent because the fork's build-ci.yml publishes only
-# linux/amd64, linux/arm64 and linux/arm/v7.
+# amd64 and aarch64 only. The firmware image also has a linux/arm/v7 leg, but
+# home-assistant/builder's prepare-multi-arch-matrix builds each architecture on
+# a native runner -- ubuntu-24.04 and ubuntu-24.04-arm -- and has none for
+# armv7, so it rejects the value outright. Every current Home Assistant OS
+# install on a Pi 3/4/5 is aarch64; 32-bit hosts need the plain Docker
+# deployment in the firmware repo instead.
 
 build_from:
   amd64: ghcr.io/rbhr/opensprinkler-firmware:v2.2.1.5-ospi.1
   aarch64: ghcr.io/rbhr/opensprinkler-firmware:v2.2.1.5-ospi.1
-  armv7: ghcr.io/rbhr/opensprinkler-firmware:v2.2.1.5-ospi.1
