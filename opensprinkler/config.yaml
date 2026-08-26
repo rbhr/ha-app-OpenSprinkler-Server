@@ -1,5 +1,5 @@
 name: OpenSprinkler
-version: "1.1.0"
+version: "1.1.1"
 slug: opensprinkler
 description: OpenSprinkler Pi irrigation controller, with or without sprinkler hardware
 url: https://github.com/rbhr/ha-app-OpenSprinkler-Server
@@ -20,9 +20,17 @@ image: ghcr.io/rbhr/{arch}-opensprinkler
 # Verified end to end against a local stand-in for supervisor/api/ingress.py:
 # the whole UI works and not one request reached the add-on with a doubled
 # slash. Do not "simplify" this to a path-rewriting proxy; none is needed.
+#
+# Do NOT add ingress_entry. Supervisor builds the panel URL as
+#   url = f"/api/hassio_ingress/{token}/"          <- already ends in a slash
+#   if ingress_entry: return f"{url}{ingress_entry}"
+# so ingress_entry is appended RELATIVE to a URL that already ends in "/".
+# `ingress_entry: /` therefore yields ".../<token>//", which Supervisor
+# forwards to the add-on as "//" -- and OTF matches routes by exact string
+# ("// TODO handle trailing slash in path?"), so that is a hard 404 reading
+# "The requested page does not exist". Omitting it gives "/" and works.
 ingress: true
 ingress_port: 88
-ingress_entry: /
 panel_icon: mdi:sprinkler
 panel_title: OpenSprinkler
 

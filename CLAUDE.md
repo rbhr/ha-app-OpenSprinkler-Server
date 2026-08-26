@@ -69,8 +69,17 @@ add-on version no longer identifies what a user is running.
   `supervisor/api/ingress.py`: the whole UI works and no request reached the
   add-on with a doubled slash.
 
-  The `//` problem recorded in `ha-app-C-Gate-Server/CLAUDE.md` does **not**
-  generalise. Supervisor's route is `/ingress/{token}/{path:.*}` and its target
+  **Never set `ingress_entry`.** Supervisor builds the panel URL as
+  `f"/api/hassio_ingress/{token}/"` and then appends `ingress_entry` to it
+  *relative*, so `ingress_entry: /` yields `.../<token>//` and the add-on is
+  asked for `//`. That shipped in 1.1.0 and broke the panel with OTF's "The
+  requested page does not exist". `ha-app-C-Gate-Server` carries the same key
+  — which is where its `//` came from, and why it needed hand-rolled routing.
+  The key is for add-ons whose entry point is a file, e.g. deconz's
+  `ingress_entry: ingress.html` (no leading slash).
+
+  The `//` problem recorded in `ha-app-C-Gate-Server/CLAUDE.md` is therefore
+  self-inflicted and does **not** generalise. Supervisor's route is `/ingress/{token}/{path:.*}` and its target
   is `f"http://{ip}:{port}/{path}"`, so a doubled slash only ever arrives
   because the *page* asked for one. C-Gate's did; OpenSprinkler's does not.
   Worth knowing, because `//` is a hard 404 here — the firmware routes `"/"`

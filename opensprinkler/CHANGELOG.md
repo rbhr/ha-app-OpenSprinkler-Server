@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.1
+
+- Fixes the ingress panel showing **"The requested page does not exist"**.
+  1.1.0 set `ingress_entry: /`, but Supervisor appends that *relative* to a
+  panel URL that already ends in a slash, so the add-on was asked for `//` —
+  which the firmware's router treats as a hard 404. Removing the key gives `/`.
+- Port 88 was never affected.
+
 ## 1.1.0
 
 - Adds an **ingress panel**, so OpenSprinkler appears in the Home Assistant
