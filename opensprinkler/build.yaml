@@ -5,6 +5,12 @@
 # the builder's per-arch --platform picks the right one) is the whole of
 # "pull in a new firmware build".
 #
+# Two different things read this file, and only one of them reads it by itself.
+# Supervisor uses build_from directly when a user builds the add-on locally
+# from source. The split builder actions do NOT -- that was the old monolithic
+# builder -- so the workflows parse the tag out of here and hand it to
+# build-image as a BUILD_FROM build arg, and fail if the entries disagree.
+#
 # The tag must exist as a GitHub release on rbhr/OpenSprinkler-Firmware. That
 # fork publishes :master on every push, but :release, :latest and semver tags
 # fire only on a published release -- see its CLAUDE.md, "Releasing".

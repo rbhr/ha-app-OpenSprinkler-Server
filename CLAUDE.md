@@ -24,11 +24,19 @@ add-on version no longer identifies what a user is running.
 - `opensprinkler/config.yaml` — add-on manifest. **`version:` is the published
   image tag**, so it must be bumped for every release.
 - `opensprinkler/build.yaml` — the Home Assistant builder's config, *not* a
-  workflow. The only place the firmware version is pinned. All three
-  architectures name the same tag; the tag is a multi-arch manifest and the
-  builder's per-arch `--platform` resolves the right one. **amd64 and aarch64
-  only** — `prepare-multi-arch-matrix` builds on native runners and has none
-  for armv7, so it rejects that value outright.
+  workflow. The only place the firmware version is pinned. Both architectures
+  name the same tag; the tag is a multi-arch manifest and the per-arch
+  `--platform` resolves the right leg. **amd64 and aarch64 only** —
+  `prepare-multi-arch-matrix` builds on native runners and has none for armv7,
+  so it rejects that value outright.
+
+  **The split builder actions do not read this file.** Only the old monolithic
+  builder did, and Supervisor still does when a user builds the add-on locally
+  from source. So the workflows parse the tag out of it in their `init` job and
+  pass it to `build-image` as a `BUILD_FROM` build arg — leaving it out is a
+  blank `FROM` and `base name (${BUILD_FROM}) should not be blank`. The init
+  step also fails the run if the `build_from` entries disagree, since one
+  `BUILD_FROM` is used for every architecture.
 - `opensprinkler/run.sh` — the entrypoint. Reads `options.json`, creates the
   data directory, probes for hardware, then `exec`s the firmware as PID 1.
 - `.github/workflows/test-build.yaml` — named that way so it is not mistaken
