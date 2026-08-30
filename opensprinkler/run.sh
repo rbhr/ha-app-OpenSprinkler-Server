@@ -136,9 +136,12 @@ apply_login_settings() {
         seed_log "         the factory default, so its current password is unknown and"
         seed_log "         the API calls below cannot be authenticated. Login settings"
         seed_log "         from the add-on configuration were ignored this boot. Set"
-        seed_log "         the option to the password you are actually using, change it"
-        seed_log "         back in the UI, or delete /data/opensprinkler/sopts.dat to"
-        seed_log "         return to 'opendoor'."
+        seed_log "         the password option to the one you are actually using, or"
+        seed_log "         change it back in the UI. If it is lost, the only way back"
+        seed_log "         is a factory reset -- see 'Resetting a forgotten password'"
+        seed_log "         in the add-on documentation. Do NOT delete sopts.dat: it"
+        seed_log "         is never recreated, and the password check then fails for"
+        seed_log "         every password rather than falling back to the default."
         return
     fi
 
@@ -178,9 +181,9 @@ apply_login_settings() {
             # accepted. Confirm the hash we ended up with really works.
             if ! curl -fsS -m 5 "${API}/jo?pw=${cur}" 2>/dev/null | grep -q '"ipas"'; then
                 seed_log "WARNING: but the password could not be confirmed afterwards, so"
-                seed_log "         nobody may know it. Set the password option too, or"
-                seed_log "         delete /data/opensprinkler/sopts.dat to return to"
-                seed_log "         'opendoor'."
+                seed_log "         nobody may know it, and the prompt is now in the way."
+                seed_log "         Set the password option as well, or turn this option"
+                seed_log "         back on, before restarting."
             fi
         fi
     fi

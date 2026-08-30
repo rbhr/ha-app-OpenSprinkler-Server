@@ -1,5 +1,5 @@
 name: OpenSprinkler
-version: "1.2.0"
+version: "1.2.1"
 slug: opensprinkler
 description: OpenSprinkler Pi irrigation controller, with or without sprinkler hardware
 url: https://github.com/rbhr/ha-app-OpenSprinkler-Server

@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.2.1
+
+- Corrects bad recovery advice given in 1.2.0. When the add-on could not
+  authenticate to apply the `password` option, it suggested deleting
+  `sopts.dat` to return to `opendoor`. **That does the opposite:** nothing
+  recreates the file, and the firmware's password check reports a mismatch for
+  every password when it cannot open it, so following the advice would have
+  locked you out with no way in. The log message and the documentation now say
+  what actually works — and the documentation now has a *Resetting a forgotten
+  password* section explaining that it means a factory reset.
+- Documentation only otherwise: the add-on behaves exactly as 1.2.0 did.
+- No firmware change: still `v2.2.1.5-ospi.1`.
+
 ## 1.2.0
 
 - Adds a **`password`** option. Set the controller's password in the add-on
