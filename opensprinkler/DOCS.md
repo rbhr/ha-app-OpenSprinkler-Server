@@ -8,9 +8,53 @@ hardware attached.
 
 1. Install the add-on and start it.
 2. Open the web UI (**Open Web UI**, or `http://<your-ha-host>:88/`).
-3. Default password is `opendoor` — change it in the UI immediately.
+3. Default password is `opendoor` — change it in the UI, or set the
+   `password` option below and let the add-on do it.
 
 ## Configuration
+
+### Option: `password`
+
+Optional; unset by default.
+
+The controller's own password — the one the web UI asks for on first load. Set
+it here and the add-on applies it to the controller every time it starts, so
+Home Assistant is where you keep it rather than a value you have to remember
+having typed into the UI once.
+
+Leave it unset and the add-on does not touch the password at all; whatever is
+in the UI stands.
+
+Two things to know:
+
+- **It cannot rescue a password you have forgotten.** Changing the password
+  requires the current one, so on each start the add-on tries the value you
+  configured (nothing to do if it already matches), then the factory default
+  `opendoor`. If neither is accepted, it logs a warning explaining that and
+  starts normally with the password unchanged. Deleting
+  `/data/opensprinkler/sopts.dat` returns the controller to `opendoor`, and
+  loses the MQTT, SMTP and IFTTT settings stored alongside it.
+- **It does not stop the UI asking.** The password prompt is the UI's, and
+  there is no way to answer it on your behalf. It appears once per browser and
+  is remembered after that. If what you want is no prompt, see below.
+
+### Option: `ignore_password`
+
+Optional; unset by default.
+
+Set it to `true` and the web UI opens straight into the controller with no
+password prompt — including from the sidebar panel, where Home Assistant has
+already authenticated you.
+
+**This is not ingress-only.** The firmware has a single "ignore password"
+setting, and it makes every request unauthenticated: anything that can reach
+port 88 on your network can start and stop watering. Turn it on only if you are
+comfortable with that, or drop the `88/tcp` port mapping so ingress is the only
+way in.
+
+Set it to `false` and the add-on restores the prompt. Leave it unset and the
+add-on does not touch the setting, so the **Ignore password** checkbox in the
+OpenSprinkler UI stays in charge.
 
 ### Option: `require_hardware`
 
@@ -51,7 +95,9 @@ does not want `/dev/mem` or `CAP_SYS_RAWIO`.
 There are two ways in, and both are deliberate.
 
 **The sidebar panel** (ingress) is the everyday one. It needs no port, no
-address, and no separate authentication.
+address, and no separate Home Assistant authentication — though the
+OpenSprinkler UI still asks for the controller's own password the first time
+each browser opens it, unless `ignore_password` is on.
 
 **Port 88 published directly** is for everything else: other applications on
 the network that use the controller's HTTP API cannot go through an ingress

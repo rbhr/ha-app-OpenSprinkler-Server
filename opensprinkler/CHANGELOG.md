@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.2.0
+
+- Adds a **`password`** option. Set the controller's password in the add-on
+  configuration and the add-on applies it over the firmware's HTTP API on every
+  start, so Home Assistant holds it instead of it being something you typed
+  into the UI once. Leave it unset and nothing is touched. It cannot recover a
+  password you have forgotten — changing one needs the current one, so the
+  add-on tries the configured value, then the factory `opendoor`, and warns in
+  the log if neither is accepted.
+- Adds an **`ignore_password`** option. With it on, the web UI opens with no
+  password prompt, which is what makes the sidebar panel usable without typing
+  the controller password into every browser. It sets the firmware's `ipas`
+  option, which is global: **port 88 becomes unauthenticated too.** Off or
+  unset, nothing changes.
+- Both options are optional and absent from `options.json` until set, so an
+  installation that ignores them behaves exactly as 1.1.1 did and the
+  OpenSprinkler UI stays in charge of both settings.
+- No firmware change: still `v2.2.1.5-ospi.1`.
+
 ## 1.1.1
 
 - Fixes the ingress panel showing **"The requested page does not exist"**.

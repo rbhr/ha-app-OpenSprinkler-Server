@@ -1,5 +1,5 @@
 name: OpenSprinkler
-version: "1.1.1"
+version: "1.2.0"
 slug: opensprinkler
 description: OpenSprinkler Pi irrigation controller, with or without sprinkler hardware
 url: https://github.com/rbhr/ha-app-OpenSprinkler-Server
@@ -61,7 +61,21 @@ map:
   - type: data
     read_only: false
 
+# password and ignore_password are optional and are NOT listed under options:,
+# so Supervisor leaves them out of options.json until the user sets one. That
+# absence is meaningful: it is what lets the add-on stay out of the way of the
+# firmware's own persisted settings, which is the general rule here. Give one a
+# value and the add-on asserts it on every start instead, overwriting whatever
+# was set in the UI -- which is the point of setting it, but is also why these
+# two are the only options that reach into the controller's configuration.
+#
+# password is the plaintext; run.sh hashes it and applies it over the HTTP API.
+# ignore_password removes the login prompt entirely by setting the firmware's
+# ipas option. That is global, not ingress-only -- the firmware has one switch
+# and it covers port 88 too.
 options:
   require_hardware: false
 schema:
+  password: password?
+  ignore_password: bool?
   require_hardware: bool
