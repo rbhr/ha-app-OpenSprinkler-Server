@@ -88,6 +88,36 @@ add-on version no longer identifies what a user is running.
   configuration in its data directory and exposes it in the web UI. Only things
   that must be decided before the binary starts belong in `config.yaml`.
 
+  `password` and `ignore_password` are the two deliberate exceptions, added in
+  1.2.0 because the sidebar panel is unusable-feeling when every browser has to
+  be told the controller password. They are kept from becoming a shadow by
+  being **optional and omitted from `options:`**, so Supervisor leaves them out
+  of `options.json` entirely until the user sets one. Absent means "leave the
+  controller alone"; set means "assert this on every start". Do not give either
+  one a default — that would make every installation start overwriting its own
+  UI settings. The same trick is the right answer for any future option that
+  has to reach into the firmware's own configuration.
+- **Reach into firmware settings over its HTTP API, never by writing `.dat`
+  files.** `sopts.dat` is fixed 320-byte records (`MAX_SOPTS_SIZE`) with the
+  password at index 0 as the md5 of the plaintext, and `iopts.dat` is one byte
+  per option in enum order — both are internal layout that a firmware bump can
+  move under us. `run.sh` instead waits for the controller's own server and
+  calls `/sp?pw=&npw=&cpw=` and `/co?pw=&ipas=`, which are stable, documented,
+  and validate what they are given. `/jo` is the readiness probe *and* the
+  auth check: it answers 200 either way, with the full options when the
+  password checks out and only `{"fwv":...}` when it does not, because
+  `process_password()` is called there with `fwv_on_fail`.
+- **There is no way to hand the UI a password.** The firmware serves `/` itself
+  (`server_home`), the page is `var ver=…,ipas=…` plus a `<script>` pointing at
+  `SOPT_JAVASCRIPTURL`, and `home.js` reads no query string — it prompts, then
+  stores the hash per browser under `sites.Local`. The binary takes only `-d`.
+  So the *only* lever that removes the prompt is `ipas`
+  (`IOPT_IGNORE_PASSWORD`): `server_home` emits it into the page and `home.js`
+  calls `savePassword( "" )` instead of asking. It is global —
+  `process_password()` returns true for every request — so it unauthenticates
+  port 88 too, and cannot be scoped to ingress. Anything that claims otherwise
+  is proposing a proxy; see above for why there isn't one.
+
 ## Testing locally
 
 **Pass `--pull`.** Without it Docker reuses whatever it already has under that
