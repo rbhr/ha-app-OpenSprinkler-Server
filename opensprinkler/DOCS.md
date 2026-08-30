@@ -7,9 +7,11 @@ hardware attached.
 ## Installation
 
 1. Install the add-on and start it.
-2. Open the web UI (**Open Web UI**, or `http://<your-ha-host>:88/`).
-3. Default password is `opendoor` — change it in the UI, or set the
-   `password` option below and let the add-on do it.
+2. Open it from the **sidebar panel**, or on the network at
+   `http://<your-ha-host>:88/`.
+3. The controller's password starts as `opendoor`. Set the `password` option
+   below before you change it in the UI — that is what keeps it somewhere you
+   can look it up, and a forgotten one costs a factory reset.
 
 ## Configuration
 
@@ -27,13 +29,12 @@ in the UI stands.
 
 Two things to know:
 
-- **It cannot rescue a password you have forgotten.** Changing the password
-  requires the current one, so on each start the add-on tries the value you
-  configured (nothing to do if it already matches), then the factory default
-  `opendoor`. If neither is accepted, it logs a warning explaining that and
-  starts normally with the password unchanged. Deleting
-  `/data/opensprinkler/sopts.dat` returns the controller to `opendoor`, and
-  loses the MQTT, SMTP and IFTTT settings stored alongside it.
+- **It cannot rescue a password you have forgotten.** Changing a password
+  requires the current one, so on each start the add-on authenticates with the
+  value you configured, then with the factory default `opendoor`. If neither is
+  accepted it logs a warning and starts normally, password unchanged — see
+  [Resetting a forgotten password](#resetting-a-forgotten-password), which is
+  not a pleasant procedure.
 - **It does not stop the UI asking.** The password prompt is the UI's, and
   there is no way to answer it on your behalf. It appears once per browser and
   is remembered after that. If what you want is no prompt, see below.
@@ -53,8 +54,8 @@ comfortable with that, or drop the `88/tcp` port mapping so ingress is the only
 way in.
 
 Set it to `false` and the add-on restores the prompt. Leave it unset and the
-add-on does not touch the setting, so the **Ignore password** checkbox in the
-OpenSprinkler UI stays in charge.
+add-on does not touch the setting, so the **Ignore Password** checkbox in the
+OpenSprinkler UI — Edit Options → Advanced — stays in charge.
 
 ### Option: `require_hardware`
 
@@ -116,8 +117,31 @@ add-on: `iopts.dat`, `sopts.dat`, `stns.dat`, `prog.dat`, `nvcon.dat`,
 `done.dat`, `sens.dat`, `senadj.dat`, and a `logs/` directory. It survives
 add-on updates and restarts, and is included in Home Assistant backups.
 
-`sopts.dat` holds MQTT, SMTP and IFTTT credentials in the clear. Treat add-on
-backups accordingly.
+`sopts.dat` holds MQTT, SMTP and IFTTT credentials in the clear, plus the
+controller password as an md5 hash. If you use the `password` option, the
+plaintext is also in `/data/options.json`, as every add-on option is. Both are
+in Home Assistant backups; treat them accordingly.
+
+### Resetting a forgotten password
+
+There is no gentle way back — the firmware has no recovery path short of a
+factory reset, and a factory reset takes everything with it: every option,
+every station name and attribute, every program, and the sensor configuration
+and logs.
+
+Take a Home Assistant backup first. If you have an older one from before the
+password was changed, restoring it is much the better option.
+
+Otherwise, either uninstall and reinstall the add-on — Supervisor deletes the
+add-on's data directory on uninstall, so the firmware starts fresh — or, if you
+can reach the container's `/data`, delete `opensprinkler/done.dat` and restart.
+The firmware factory-resets whenever that file is missing, which rewrites the
+password to `opendoor`.
+
+**Do not delete `sopts.dat` instead.** It looks like the targeted fix and it is
+the exact opposite: nothing recreates the file, and the firmware's password
+check reports a mismatch for *every* password when it cannot open it. You end
+up locked out with all your settings intact and no way in.
 
 ### Migrating an existing installation
 

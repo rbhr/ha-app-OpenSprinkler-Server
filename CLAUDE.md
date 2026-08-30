@@ -107,6 +107,16 @@ add-on version no longer identifies what a user is running.
   auth check: it answers 200 either way, with the full options when the
   password checks out and only `{"fwv":...}` when it does not, because
   `process_password()` is called there with `fwv_on_fail`.
+- **A forgotten controller password costs a factory reset, and `sopts.dat` is
+  a trap.** `options_setup()` factory-resets on exactly two conditions: the
+  `IOPT_FW_VERSION` byte in `iopts.dat` not matching the build, or `done.dat`
+  being absent. Deleting `sopts.dat` triggers neither, so nothing recreates it
+  — and `file_cmp_block()` returns 1 when it cannot open the file, so
+  `password_verify()` then fails for *every* password. The obvious targeted fix
+  locks the user out permanently. The real recovery is removing `done.dat` (or
+  the whole data directory), which resets options, stations, programs and
+  sensor logs along with the password. 1.2.0 shipped the wrong advice in both
+  `DOCS.md` and a `run.sh` warning; 1.2.1 corrected it.
 - **There is no way to hand the UI a password.** The firmware serves `/` itself
   (`server_home`), the page is `var ver=…,ipas=…` plus a `<script>` pointing at
   `SOPT_JAVASCRIPTURL`, and `home.js` reads no query string — it prompts, then

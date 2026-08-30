@@ -16,8 +16,16 @@ https://github.com/rbhr/ha-app-OpenSprinkler-Server
 
 Then install **OpenSprinkler** from the store. It appears in the sidebar, and
 also publishes port 88 directly for applications on the network that use the
-HTTP API. See [the add-on documentation](opensprinkler/DOCS.md) for
-configuration.
+HTTP API.
+
+Three options are worth knowing about before the first start; all of them are
+covered in [the add-on documentation](opensprinkler/DOCS.md#configuration).
+
+| Option | What it is for |
+|---|---|
+| `password` | Sets the controller's password (`opendoor` out of the box) from the add-on configuration, so Home Assistant holds it. A forgotten one costs a factory reset. |
+| `ignore_password` | Removes the login prompt, so the sidebar panel opens straight into the UI. It also unauthenticates port 88 — the firmware has one switch for both. |
+| `require_hardware` | Refuses to start when no GPIO device is present, instead of running green with no valve ever opening. |
 
 ## How this relates to the firmware
 
